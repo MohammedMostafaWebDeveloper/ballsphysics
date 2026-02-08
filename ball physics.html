@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Balls Physics</title>
+    <style>
+        *{
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        canvas{
+            position: absolute;
+            background: rgb(44, 44, 44);
+        }
+    </style>
+</head>
+<body>
+    <canvas></canvas>
+    <script>
+        var canvas = document.querySelector("canvas")
+        canvas.width = innerWidth
+        canvas.height = innerHeight
+        var c = canvas.getContext("2d")
+
+        var balls = []
+
+        c.fillStyle = "white"
+        c.strokeStyle = "black"
+
+        var gravity = 400
+
+        function collideBalls(b1, b2, e = 0.9) {
+            let dx = b2.pos.x - b1.pos.x;
+            let dy = b2.pos.y - b1.pos.y;
+            let dist = Math.hypot(dx, dy);
+            let minDist = b1.radius + b2.radius;
+            
+            if (dist < minDist) {
+                let nx = dx / dist;
+                let ny = dy / dist;
+                let tx = -ny;
+                let ty = nx;
+
+                let v1n = b1.vel.x * nx + b1.vel.y * ny;
+                let v1t = b1.vel.x * tx + b1.vel.y * ty;
+                let v2n = b2.vel.x * nx + b2.vel.y * ny;
+                let v2t = b2.vel.x * tx + b2.vel.y * ty;
+
+                let v1nAfter = v2n * e;
+                let v2nAfter = v1n * e;
+
+                b1.vel.x = v1nAfter * nx + v1t * tx;
+                b1.vel.y = v1nAfter * ny + v1t * ty;
+                b2.vel.x = v2nAfter * nx + v2t * tx;
+                b2.vel.y = v2nAfter * ny + v2t * ty;
+
+                let overlap = (minDist - dist) / 2;
+                b1.pos.x -= nx * overlap;
+                b1.pos.y -= ny * overlap;
+                b2.pos.x += nx * overlap;
+                b2.pos.y += ny * overlap;
+            }
+        }
+
+        class Ball{
+            constructor(x, y, r) {
+                this.pos = {x: x, y: y}
+                this.vel = {x: 0, y: 0}
+                this.radius = r
+            }
+            draw() {
+                c.beginPath()
+                c.arc(this.pos.x, this.pos.y, this.radius, 0, Math.PI * 2, false)
+                c.fill()
+                c.stroke()
+            }
+            collide() {
+                if (this.pos.x - this.radius <= 0) {
+                    this.pos.x = this.radius
+                    this.vel.x = -this.vel.x 
+                }
+                else if (this.pos.x + this.radius >= canvas.width) {
+                    this.pos.x = canvas.width - this.radius
+                    this.vel.x = -this.vel.x
+                }
+                if (this.pos.y - this.radius <= 0) {
+                    this.pos.y = this.radius
+                    this.vel.y = -this.vel.y
+                }
+                else if (this.pos.y + this.radius >= canvas.height) {
+                    this.pos.y = canvas.height - this.radius
+                    this.vel.y = -this.vel.y
+                }
+                balls.forEach(ball => {
+                    if (ball == this) {
+                        return
+                    }
+                    collideBalls(ball, this, 0.5)
+                })
+            }
+            update(dt) {
+                this.vel.y += gravity * dt
+                this.pos.x += this.vel.x * dt
+                this.pos.y += this.vel.y * dt
+                this.collide()
+                this.draw()
+            }
+        }
+
+        window.onclick = function (e) {
+            balls.push(new Ball(e.clientX, e.clientY, 20))
+        }
+
+        var lastTime = 0
+
+        function animate(currentTime) {
+            c.clearRect(0, 0, canvas.width, canvas.height)
+            requestAnimationFrame(animate)
+            var dt = (currentTime - lastTime) / 1000
+            lastTime = currentTime
+            balls.forEach(ball => {
+                ball.update(dt)
+            })
+        }
+        animate()
+</script>
+</body>
+</html>
